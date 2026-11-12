@@ -156,15 +156,20 @@ def get_events():
             f"Format: {event_format}" if event_format else ""
         ]
 
+       
         items.append({
             "title": title,
             "url": url,
-            "description": " | ".join(
-                detail for detail in details if detail
-            ),
+            "description": "\n\n".join([
+                title,
+                " | ".join(
+                    detail for detail in details if detail
+                )
+            ]),
             "category": "Event",
             "event_date": event_date
         })
+
 
     return items
 
