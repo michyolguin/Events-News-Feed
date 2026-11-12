@@ -5,6 +5,8 @@ from urllib.parse import urljoin, urlencode
 from datetime import datetime, timezone
 from email.utils import format_datetime
 from xml.etree.ElementTree import Element, SubElement, ElementTree
+from pathlib import Path
+from xml.etree import ElementTree as ET
 import time
 
 BASE = "https://www.graduateinstitute.ch"
@@ -167,7 +169,34 @@ def get_events():
     return items
 
 
+def get_existing_dates():
+    """Remember when each RSS item was first discovered."""
+    feed_path = Path("feed.xml")
+    dates = {}
+
+    if not feed_path.exists():
+        return dates
+
+    try:
+        tree = ET.parse(feed_path)
+
+        for item in tree.findall("./channel/item"):
+            guid = item.findtext("guid")
+            pub_date = item.findtext("pubDate")
+
+            if guid and pub_date:
+                dates[guid] = pub_date
+
+    except ET.ParseError:
+        print("Existing RSS could not be parsed.")
+
+    return dates
+
+
 def make_feed(items):
+    existing_dates = get_existing_dates()
+    first_seen = format_datetime(datetime.now(timezone.utc))
+
     rss = Element("rss", version="2.0")
     channel = SubElement(rss, "channel")
 
@@ -199,6 +228,9 @@ def make_feed(items):
         )
         SubElement(item, "category").text = (
             entry["category"]
+        )
+        SubElement(item, "pubDate").text = (
+            existing_dates.get(entry["url"], first_seen)
         )
 
         if entry["event_date"]:
